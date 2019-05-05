@@ -89,8 +89,9 @@ def create_dataset(data, time_steps):
     X = []
     Y = []
     for x in range(len(data)//time_steps - 1):
+        # get frame and normalize
         frame = data[x:x+time_steps]/255
-        # get frame of data for input
+        # append frame of data to dataset 
         X.append(frame.reshape(time_steps,1))
         # get ulaw encoded sample after frame for target
         Y.append(data[x+time_steps])
@@ -124,6 +125,7 @@ def main():
     neurons_per_layer = arg.neurons
 
     # load data
+    print("[Data Preperation]")
     raw_data = load_data(data_dir)
     print(f'Number of samples: {len(raw_data)} Length of data: {len(raw_data)/SAMPLERATE} secs')
     data = pre_process(raw_data)
@@ -137,9 +139,9 @@ def main():
     # build model
     AudioRNN = model(batch_size, time_steps, neurons_per_layer)
     AudioRNN.summary()
-    best_model_checkpoint = ModelCheckpoint(model_file, save_best_only=True) 
     
-    print('Initiating training...')
+    print('[Initiating training]')
+    best_model_checkpoint = ModelCheckpoint(model_file, save_best_only=True) 
     model_history = AudioRNN.fit(x_train, y_train, validation_split=0.1, batch_size=batch_size, epochs=epochs, callbacks=[best_model_checkpoint])
     pickle.dump(model_history.history, open(model_file.split('.')[0] + '.npy', "wb"))
 
