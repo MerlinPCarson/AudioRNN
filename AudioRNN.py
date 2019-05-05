@@ -20,20 +20,11 @@ def from_ulaw(samples):
         ampl_val_16 = (np.sign(ampl_val_8) * (1/256.0) * ((1 + 256.0)**abs(ampl_val_8) - 1)) * 2**15
         dec_samples.append(ampl_val_16)
     return np.array(dec_samples, dtype=np.int16)
-    u = samples - 128
-    sign = np.sign(u)
-    u = np.abs(u)
-    return sign*FROM_ULAW_SCALE*(np.exp(u/128.*math.log(256))-1)
 
 def to_ulaw(samples):
     enc_samples = [int((np.sign(sample) * (np.log(1 + 256*abs(sample)) / (
             np.log(1+256))) + 1)/2.0 * 255) for sample in samples]
     return np.array(enc_samples, dtype=np.uint8)
-    sign = np.sign(samples)
-    x = np.abs(samples)
-    u = (sign*(128*np.log(1+TO_ULAW_SCALE*x)/math.log(256)))
-    u = np.clip(128 + np.round(u), 0, 255)
-    return u.astype('int16')
 
 def write_audio(samples, file_name):
 
@@ -92,26 +83,17 @@ def main():
     data_dir = os.path.join(script_dir, arg.datadir)
 
     raw_data = load_data(data_dir)
-    #write_audio(raw_data, audio_file)
-    #data = scale_data(raw_data)
-    #data = pre_process(raw_data[:32000])
-    data = to_ulaw(raw_data[:32000])
-    print(data.min(), data.max())
+    data = pre_process(raw_data[:32000])
+
+    # encode data to 8-bits
+    data = to_ulaw(data)
+    # decode data from 8-bits to int16
     data = from_ulaw(data)
-    #data = post_process(data)
-    print(data.min(), data.max())
-
-    #data = ulaw2lin(lin2ulaw(raw_data, 4), 1)
-#    data = np.array(list(lin2ulaw(raw_data, 4)), dtype=np.uint8)
-#    data = np.array(list(ulaw2lin(data, 1)), dtype=np.int32)
-    #data = to_ulaw(raw_data)
-    #data = from_ulaw(data)
-
-    #data = pre_process(raw_data)
-    #data = post_process(data)
+    
+    data = post_process(data)
 
     # NOTE:test audio data is correct
-    write_audio(data, audio_file)
+    write_audio(data.astype('int16'), audio_file)
 
     print(f"AudioRNN completed at {time.ctime()}")
 
