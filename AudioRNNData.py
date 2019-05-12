@@ -30,7 +30,8 @@ def load_audio_from_HDF5(data_file):
     with h5py.File(data_file, 'r') as hf:
         return np.array(hf.get('AudioRNNdata'))
 
-def save_data_to_HDF5(data, time_steps, chunk_size, outfile):
+def save_data_to_HDF5(data, time_steps, outfile):
+    chunk_size = len(data)//100
     print("Saving data to HDF5 file.")
     audio_gen = dataset_generator(data, time_steps, chunk_size)
     with h5py.File(outfile, 'w') as hf:
@@ -57,12 +58,9 @@ def main():
     time_steps = 1000
 
     data = load_audio_from_HDF5(input_file)
-    #data = data[:32000]
 
-    chunk_size = len(data)//100
-
-    save_data_to_HDF5(data, time_steps, chunk_size, output_file)
-
+    save_data_to_HDF5(data, time_steps, output_file)
 
 if __name__ == '__main__':
     main()
+    
