@@ -4,6 +4,7 @@ import librosa
 import argparse
 import pickle
 import h5py
+from tqdm import tqdm
 import glob, os, time, math
 from scipy import signal
 import AudioRNNData as DataGen
@@ -145,15 +146,17 @@ def save_audio_to_HDF5(data, data_file):
 
 def generate_audio(AudioRNN, gen_length, time_steps, audio_prompt):
     audio = []
-    for sec in range(gen_length):
-        for sample_num in range(SAMPLERATE):
-            output = AudioRNN.predict(audio_prompt.reshape(1, time_steps, 1))
-            sample = from_ulaw(np.argmax(output))
-            audio.append(sample)
-            audio_prompt = np.vstack(audio_prompt, sample.reshape(1,1))
-            audio_prompt = audio_prompt[1:]
+    print(f"Generating {gen_length} secs of audio.")
+    for sample in tqdm(range(int(gen_length*SAMPLERATE))):
+        #for sample_num in range(SAMPLERATE):
+        output = AudioRNN.predict(audio_prompt.reshape(1,time_steps,1))
+        pred_sample = np.argmax(output)
+        audio.append(pred_sample)
+        pred_sample /= 255
+        audio_prompt = np.append(audio_prompt, pred_sample)
+        audio_prompt = audio_prompt[1:]
 
-    return np.array(audio, dtype='float32')
+    return from_ulaw(audio) 
     
 
 def main():
@@ -182,7 +185,6 @@ def main():
 
     # training arguments
     train = arg.train 
-    train = True
 
     # generate audio arguments
     gen_audio = arg.generate 
@@ -194,7 +196,6 @@ def main():
     save_HDF5 = arg.saveHDF5 
     load_audio_HDF5 = arg.loadaudioHDF5
     save_audio_HDF5 = arg.saveaudioHDF5
-    load_HDF5 = True 
 
     # file arguments
     model_file = os.path.join(script_dir, arg.modelfile)
@@ -209,6 +210,11 @@ def main():
     time_shift = arg.timeshift
     neurons_per_layer = arg.neurons
 
+# NOTE: for debugging
+    #train = True
+    load_HDF5 = True 
+    gen_audio = True
+
     # load audio data, if dataset is not loaded from HDF5
     if not load_HDF5:
         if load_audio_HDF5:
@@ -216,7 +222,7 @@ def main():
         else:
             print("[Data Preperation]")
             raw_data = load_data(data_dir)
-            raw_data = raw_data[:32000]
+            #raw_data = raw_data[:32000]
             print(f'Number of samples: {len(raw_data)} Length of data: {len(raw_data)/SAMPLERATE} secs')
             data = pre_process(raw_data)
     
@@ -266,8 +272,10 @@ def main():
     if gen_audio:
         AudioRNN = model(1, time_steps, neurons_per_layer)
         AudioRNN.load_weights(model_file)
-        audio = generate_audio(AudioRNN, gen_length, time_steps, x_valid[:time_steps])
-        write_audio(audio.astype('int16'), audio_file)
+        AudioRNN.summary()
+        audio_prompt, _ = load_from_HDF5(data_file, 1)
+        audio = generate_audio(AudioRNN, 0.05, time_steps, audio_prompt)
+        write_audio(post_process(audio), audio_file)
 
     # decode data from 8-bits to int16
     #data = from_ulaw(data)
