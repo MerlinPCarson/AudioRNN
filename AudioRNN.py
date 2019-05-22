@@ -9,37 +9,57 @@ import glob, os, time, math
 from scipy import signal
 import AudioRNNData as DataGen
 from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
 #from audioop import lin2ulaw, ulaw2lin
 
 # Keras packages model
 from keras.models import Sequential, Model, load_model
-from keras.layers import Input, Dense, CuDNNGRU
-from keras.callbacks import ModelCheckpoint #, EarlyStopping, CoolDown
+from keras.layers import Input, Dense, CuDNNGRU, CuDNNLSTM, Dropout
+from keras.callbacks import Callback, ModelCheckpoint #, EarlyStopping, CoolDown
 from keras.optimizers import Adam
 from keras.utils import to_categorical
 
 
-SAMPLERATE = 16000
+#SAMPLERATE = 16000
 EMPHASISCOEFF = -0.95
 
 #TO_ULAW_SCALE = 255.0/32767.0
 #FROM_ULAW_SCALE = TO_ULAW_SCALE ** -1
 
-def write_audio(samples, file_name):
+class SaveAudioCallback(Callback):
+    def __init__(self, ckpt_freq, gen_length, sample_rate, time_steps, audio_context, batch_size):
+        super(SaveAudioCallback, self).__init__()
+        self.ckpt_freq = ckpt_freq
+        self.audio_context = audio_context 
+        self.gen_length = gen_length
+        self.sample_rate = sample_rate
+        self.time_steps = time_steps
+        self.audio_context = audio_context
+        self.batch_size = batch_size
 
-    sf.write(file_name, samples, SAMPLERATE, subtype='PCM_16')
+    def on_epoch_end(self, epoch, logs={}):
+        if (epoch+1)%self.ckpt_freq==0:
+            ts = str(int(time.time()))
+            audio_file = os.path.join('output/', 'ckpt_'+ts+'.wav')
+            audio = generate_audio(self.model, self.gen_length, self.sample_rate, self.time_steps, self.audio_context, self.batch_size)
+            write_audio(post_process(audio).astype('int16'), audio_file, self.sample_rate)
+
+
+def write_audio(samples, file_name, sample_rate):
+
+    sf.write(file_name, samples, sample_rate, subtype='PCM_16')
     print('Audio saved to disk.')
 
-def load_data(datadir):
+def load_data(datadir, sample_rate):
 
     concat_data = np.array([],dtype='float32')
 
     for waveFile in glob.glob(os.path.join(datadir, '**', '*.wav'),recursive=True):
         print('loading',waveFile)
         data, sr = sf.read(waveFile, dtype='float32')
-        if sr != SAMPLERATE:
+        if sr != sample_rate:
             data = data.T
-            data = librosa.resample(data, sr, SAMPLERATE)
+            data = librosa.resample(data, sr, sample_rate)
             concat_data = np.append(concat_data,data)
         else:
             concat_data = np.append(concat_data, data)
@@ -60,6 +80,9 @@ def post_process(samples):
     proc_samples = signal.lfilter( [1], [1, EMPHASISCOEFF], samples )
 
     return proc_samples
+
+def standardize(data):
+   return (data - data.min())/(data.max() - data.min()) 
 
 def from_ulaw(samples):
     dec_samples = []
@@ -83,10 +106,13 @@ def scale_data(samples):
 def model(batch_size, time_steps, num_neurons):
     x_in = Input(batch_shape=(batch_size, time_steps, 1))
     x = Dense(num_neurons, activation='relu')(x_in)
-    x = CuDNNGRU(num_neurons, return_sequences=False, stateful=False)(x)
+    x = CuDNNLSTM(num_neurons, return_sequences=True, stateful=False)(x)
+    #x = Dropout(0.4)(x)
+    x = CuDNNLSTM(num_neurons, return_sequences=False, stateful=False)(x)
+    #x = Dropout(0.4)(x)
     x = Dense(256, activation='softmax')(x)
     model = Model(inputs=[x_in], outputs=[x])
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['categorical_accuracy'])
+    model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
 
 def create_dataset(data, time_steps, time_shift):
@@ -95,7 +121,7 @@ def create_dataset(data, time_steps, time_shift):
     Y = []
     for frame_start in range(0, len(data)-time_steps - 1, time_shift):
         # get frame and normalize
-        frame = data[frame_start:frame_start+time_steps]/255
+        frame = data[frame_start:frame_start+time_steps]
         # append frame of data to dataset 
         X.append(frame.reshape(time_steps,1))
         # get ulaw encoded sample after frame for target
@@ -130,32 +156,32 @@ def create_dataset(data, time_steps, time_shift):
 def load_from_HDF5(data_file, num_examples):
     print("Loading data from HDF5 file.")
     with h5py.File(data_file, 'r') as hf:
-        x_train = hf['x_train'][:num_examples]
-        y_train = hf['y_train'][:num_examples]
-    return x_train.astype('float32'), y_train.astype('float32')
+        x_train = hf['x_train'][200000:200000+num_examples]
+        y_train = hf['y_train'][200000:200000+num_examples]
+    return x_train.astype('float32'), y_train.astype('uint8')
 
 def load_audio_from_HDF5(data_file):
     print("Loading audio data from HDF5 file.")
-    hf = h5py.File(data_file, 'r')
-    return np.array(hf['AudioRNNdata'])
+    with h5py.File(data_file, 'r') as hf:
+        return np.array(hf['AudioRNNData'])
 
 def save_audio_to_HDF5(data, data_file):
     print("Saving audio data to HDF5 file.")
     with h5py.File(data_file, 'w') as hf:
         hf.create_dataset('AudioRNNData', data=data)
 
-def generate_audio(AudioRNN, gen_length, time_steps, audio_prompt):
+def generate_audio(AudioRNN, gen_length, sample_rate, time_steps, audio_prompt, batch_size):
     audio = []
     print(f"Generating {gen_length} secs of audio.")
-    for sample in tqdm(range(int(gen_length*SAMPLERATE))):
-        #for sample_num in range(SAMPLERATE):
-        output = AudioRNN.predict(audio_prompt.reshape(1,time_steps,1))
+    for sample in tqdm(range(int(gen_length*sample_rate))):
+        output = AudioRNN.predict(audio_prompt.reshape(batch_size,time_steps,1))
         pred_sample = np.argmax(output)
         audio.append(pred_sample)
         pred_sample /= 255
         audio_prompt = np.append(audio_prompt, pred_sample)
         audio_prompt = audio_prompt[1:]
 
+    #print(audio)
     return from_ulaw(audio) 
     
 
@@ -165,18 +191,19 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--datadir", help="root directory of data", default="McGill")
+    parser.add_argument("-sr", "--samplerate", help="audio sample rate", type=int, default=8000)
     parser.add_argument("-df", "--datafile", help="HDF5 file to save data to", default="AudioRNNData.h5")
     parser.add_argument("-m", "--modelfile", help="create audio from existing model file", default="AudioRNN.h5")
     parser.add_argument("-t", "--train", help="train the model", action="store_true")
     parser.add_argument("-g", "--generate", help="generate_audio", action="store_true")
-    parser.add_argument("-gl", "--genlength", help="length of generate_audio in secs", type=int, default=2)
+    parser.add_argument("-gl", "--genlength", help="length of generate_audio in secs", type=float, default=2)
     parser.add_argument("-sh5", "--saveHDF5", help="save preprocessed data to HDF5 file", action="store_true")
     parser.add_argument("-lh5", "--loadHDF5", help="load preprocessed data from HDF5 file", action="store_true")
     parser.add_argument("-lah5", "--loadaudioHDF5", help="load preprocessed data from HDF5 file", action="store_true")
     parser.add_argument("-sah5", "--saveaudioHDF5", help="save preprocessed data to HDF5 file", action="store_true")
     parser.add_argument("-e", "--epochs", help="Number of epochs", type=int, default=100)
     parser.add_argument("-b", "--batchsize", help="Number of batches per epoch", type=int, default=128)
-    parser.add_argument("-ns", "--numexamples", help="Number of examples to use from dataset", type=int, default=50000)
+    parser.add_argument("-ne", "--numexamples", help="Number of examples to use from dataset", type=int, default=5000)
     parser.add_argument("-ts", "--timesteps", help="Number of samples in time context", default=1000)
     parser.add_argument("-tsft", "--timeshift", help="Number of samples to skip for each example", default=1000)
     parser.add_argument("-n", "--neurons", help="Number of neurons per layer", default=256)
@@ -196,6 +223,7 @@ def main():
     save_HDF5 = arg.saveHDF5 
     load_audio_HDF5 = arg.loadaudioHDF5
     save_audio_HDF5 = arg.saveaudioHDF5
+    sample_rate = arg.samplerate
 
     # file arguments
     model_file = os.path.join(script_dir, arg.modelfile)
@@ -212,18 +240,20 @@ def main():
 
 # NOTE: for debugging
     #train = True
-    load_HDF5 = True 
-    gen_audio = True
+    #load_HDF5 = True 
+    #gen_audio = True
+    #save_HDF5 = True
+    #load_HDF5 = True
 
     # load audio data, if dataset is not loaded from HDF5
-    if not load_HDF5:
+    if not load_HDF5 and train:
         if load_audio_HDF5:
             data = load_audio_from_HDF5(os.path.join(script_dir, 'AudioData.h5'))
+            print(f"Data max: {data.max()}, Data min: {data.min()}")
         else:
             print("[Data Preperation]")
-            raw_data = load_data(data_dir)
-            #raw_data = raw_data[:32000]
-            print(f'Number of samples: {len(raw_data)} Length of data: {len(raw_data)/SAMPLERATE} secs')
+            raw_data = load_data(data_dir, sample_rate)
+            print(f'Number of samples: {len(raw_data)} Length of data: {len(raw_data)/sample_rate} secs')
             data = pre_process(raw_data)
     
             # encode data to 8-bits
@@ -244,9 +274,12 @@ def main():
         # load the datasets
         assert os.path.exists(data_file), f"Data file {data_file}, does not exists!"
         x_train, y_train = load_from_HDF5(data_file, num_examples)
+       
+        # center the data 
+        x_train = standardize(x_train)
 
         # get training and validation sets
-        x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.1, shuffle=True )
+        x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.05, shuffle=True )
         # data must be a multiple of batch size
         num_train_samples = batch_size * (len(x_train)//batch_size)
         x_train = x_train[0:num_train_samples,:,:]
@@ -264,7 +297,9 @@ def main():
         print('[Initiating training]')
         best_valid_model_checkpoint = ModelCheckpoint(model_file, save_best_only=True) 
         best_train_model_checkpoint = ModelCheckpoint(model_file.split('.')[0] + '_train.h5', save_best_only=True, monitor='loss', mode='min') 
-        model_history = AudioRNN.fit(x_train, y_train, validation_data=(x_train, y_train), batch_size=batch_size, epochs=epochs, callbacks=[best_train_model_checkpoint, best_valid_model_checkpoint])
+        audio_prompt = x_train[0:batch_size, :, :]
+        gen_audio_callback = SaveAudioCallback(1, 0.5, sample_rate, time_steps, audio_prompt, batch_size)
+        model_history = AudioRNN.fit(x_train, y_train, validation_data=(x_valid, y_valid), batch_size=batch_size, epochs=epochs, callbacks=[best_train_model_checkpoint, best_valid_model_checkpoint])
         with open(model_file.split('.')[0] + '.npy', "wb") as outfile:
             pickle.dump(model_history.history, outfile)
 
@@ -274,8 +309,8 @@ def main():
         AudioRNN.load_weights(model_file)
         AudioRNN.summary()
         audio_prompt, _ = load_from_HDF5(data_file, 1)
-        audio = generate_audio(AudioRNN, 0.05, time_steps, audio_prompt)
-        write_audio(post_process(audio), audio_file)
+        audio = generate_audio(AudioRNN, gen_length, sample_rate, time_steps, audio_prompt, 1)
+        write_audio(post_process(audio).astype('int16'), audio_file, sample_rate)
 
     # decode data from 8-bits to int16
     #data = from_ulaw(data)

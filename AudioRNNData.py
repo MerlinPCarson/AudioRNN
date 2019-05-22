@@ -9,26 +9,26 @@ def dataset_generator(data, time_steps, chunk_size):
     Y = []
     for frame_start in range(len(data)-time_steps - 1):
         # get frame and normalize
-        frame = data[frame_start:frame_start+time_steps]/255
+        frame = data[frame_start:frame_start+time_steps]
         # append frame of data to dataset 
         X.append(frame.reshape(time_steps,1))
         # get ulaw encoded sample after frame for target
         Y.append(data[frame_start+time_steps])
         if len(X) == chunk_size:
             print(f"Yielding chunk {num_chunks}, % done {frame_start/(len(data)-time_steps -1)}")
-            yield np.array(X, dtype='float32'), to_categorical(Y, num_classes=256)
+            yield np.array(X, dtype='float32'), np.array(Y, dtype='uint8').reshape(len(Y), 1)
             X = []
             Y = []
             num_chunks += 1
 
 
     print(f"Yielding final chunk {num_chunks}, % done {frame_start/(len(data)-time_steps -1)}")
-    yield np.array(X, dtype='float32'), to_categorical(Y, num_classes=256)
+    yield np.array(X, dtype='float32'), np.array(Y, dtype='uint8').reshape(len(Y), 1)
 
 def load_audio_from_HDF5(data_file):
     print("Loading data from HDF5 file.")
     with h5py.File(data_file, 'r') as hf:
-        return np.array(hf.get('AudioRNNdata'))
+        return np.array(hf['AudioRNNdata'])
 
 def save_data_to_HDF5(data, time_steps, outfile):
     chunk_size = len(data)//100
@@ -36,8 +36,9 @@ def save_data_to_HDF5(data, time_steps, outfile):
     audio_gen = dataset_generator(data, time_steps, chunk_size)
     with h5py.File(outfile, 'w') as hf:
         x_train, y_train = next(audio_gen)
-        hf.create_dataset('x_train', data = x_train, compression="gzip", chunks=True, maxshape=(None, 1000, 1))
-        hf.create_dataset('y_train', data = y_train, compression="gzip", chunks=True, maxshape=(None, 256))
+        print(x_train.shape, y_train.shape)
+        hf.create_dataset('x_train', data = x_train, chunks=True, maxshape=(None, 1000, 1))
+        hf.create_dataset('y_train', data = y_train, chunks=True, maxshape=(None, 1))
         while True:
             x_train, y_train = next(audio_gen)
             hf["x_train"].resize((hf["x_train"].shape[0] + x_train.shape[0]), axis = 0)
