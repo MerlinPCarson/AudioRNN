@@ -172,6 +172,7 @@ def save_audio_to_HDF5(data, data_file):
 
 def generate_audio(AudioRNN, gen_length, sample_rate, time_steps, audio_prompt, batch_size):
     audio = []
+    audio_prompt /= 255
     print(f"Generating {gen_length} secs of audio.")
     for sample in tqdm(range(int(gen_length*sample_rate))):
         output = AudioRNN.predict(audio_prompt.reshape(batch_size,time_steps,1))
