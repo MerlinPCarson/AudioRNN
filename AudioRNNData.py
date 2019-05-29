@@ -37,7 +37,7 @@ def save_data_to_HDF5(data, time_steps, outfile):
     with h5py.File(outfile, 'w') as hf:
         x_train, y_train = next(audio_gen)
         print(x_train.shape, y_train.shape)
-        hf.create_dataset('x_train', data = x_train, chunks=True, maxshape=(None, 1000, 1))
+        hf.create_dataset('x_train', data = x_train, chunks=True, maxshape=(None, time_steps, 1))
         hf.create_dataset('y_train', data = y_train, chunks=True, maxshape=(None, 1))
         while True:
             x_train, y_train = next(audio_gen)
