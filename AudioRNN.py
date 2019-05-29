@@ -156,8 +156,8 @@ def create_dataset(data, time_steps, time_shift):
 def load_from_HDF5(data_file, num_examples):
     print("Loading data from HDF5 file.")
     with h5py.File(data_file, 'r') as hf:
-        x_train = hf['x_train'][200000:200000+num_examples]
-        y_train = hf['y_train'][200000:200000+num_examples]
+        x_train = hf['x_train'][:num_examples]
+        y_train = hf['y_train'][:num_examples]
     return x_train.astype('float32'), y_train.astype('uint8')
 
 def load_audio_from_HDF5(data_file):
