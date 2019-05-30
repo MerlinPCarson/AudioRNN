@@ -26,7 +26,8 @@
   
 # GRU Network
 
-Inline-style: 
 ![alt text](https://github.com/mpc6/AudioRNN/blob/master/GRU.png "GRU network")
 
+# Sample Audio (not from AudioRNN)
+[Sample of AudioRNN](https://github.com/mpc6/AudioRNN/blob/master/100981__mo-damage__atari-speech.wav)
 
