@@ -21,5 +21,5 @@
 - AudioRNNData.py
   Helper script with audio dataset generation functions, can also be run stand alone.
 
--AudioRNNEval.py
+- AudioRNNEval.py
   Evaluation script for plotting a trained model's loss and accuracy.
