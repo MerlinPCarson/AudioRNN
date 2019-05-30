@@ -3,10 +3,10 @@
   A recurrent neural audio generation alogrithm that trains on and predicts PCM samples.
   
   Requirements:
-    - keras
-    - numpy
-    - scipy
-    - soundfile
-    - matplotlib
+    - keras.
+    - numpy.
+    - scipy.
+    - soundfile.
+    - matplotlib.
     
    
