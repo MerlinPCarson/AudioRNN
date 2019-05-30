@@ -23,3 +23,10 @@
 
 - AudioRNNEval.py
   Evaluation script for plotting a trained model's loss and accuracy.
+  
+# GRU Network
+
+Inline-style: 
+![alt text](https://github.com/mpc6/AudioRNN/blob/master/GRU.png "GRU network")
+
+
