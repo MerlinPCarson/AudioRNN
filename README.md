@@ -33,5 +33,8 @@
 
 # Sample Audio 
 
+  - [Audio Sample with 128 sample time context](https://mpc6.github.io/AudioRNNDemo/output-128ts.wav)
+  - [Audio Sample with 1000 sample time context](https://mpc6.github.io/AudioRNNDemo/output-128ts.wav)
+  
 # Future Work
 
