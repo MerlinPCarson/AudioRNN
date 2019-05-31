@@ -2,7 +2,7 @@
 
   A recurrent neural audio generation alogrithm that trains on and predicts PCM samples.
   
-  Requirements:
+  Requirements(Pipfile included for creating virtual environment with all requirements):
 
 - keras
 - numpy
