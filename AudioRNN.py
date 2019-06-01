@@ -21,7 +21,7 @@ from keras.utils import to_categorical
 
 
 #SAMPLERATE = 16000
-EMPHASISCOEFF = -0.95
+EMPHASISCOEFF = 0.85
 
 #TO_ULAW_SCALE = 255.0/32767.0
 #FROM_ULAW_SCALE = TO_ULAW_SCALE ** -1
@@ -86,7 +86,7 @@ def standardize(data):
 
 def from_ulaw(samples):
     dec_samples = []
-    for sample in samples:
+    for sample in tqdm(samples):
         ampl_val_8 = ((((sample) / 255.0) - 0.5) * 2.0)
         ampl_val_16 = (np.sign(ampl_val_8) * (1/256.0) * ((1 + 256.0)**abs(ampl_val_8) - 1)) * 2**15
         dec_samples.append(ampl_val_16)
@@ -94,7 +94,7 @@ def from_ulaw(samples):
 
 def to_ulaw(samples):
     enc_samples = [int((np.sign(sample) * (np.log(1 + 256*abs(sample)) / (
-            np.log(1+256))) + 1)/2.0 * 255) for sample in samples]
+            np.log(1+256))) + 1)/2.0 * 255) for sample in tqdm(samples)]
     return np.array(enc_samples, dtype=np.uint8)
 
 def scale_data(samples):
@@ -134,36 +134,12 @@ def create_dataset(data, time_steps, time_shift):
 
     return np.array(X, dtype='float32'), to_categorical(Y, num_classes=256)
 
-#def create_dataset_generator(data, time_steps):
-    #X = []
-    #Y = []
-    #while True:
-        #for frame_start in range(len(data)-time_steps - 1):
-            ## get frame and normalize
-            #frame = data[frame_start:frame_start+time_steps]/255
-            ## append frame of data to dataset 
-            #X.append(frame.reshape(time_steps,1))
-            ## get ulaw encoded sample after frame for target
-            #Y.append(data[frame_start+time_steps])
-            #if len(X) == len(data)//1000000:
-                #yield np.array(X, dtype='float32'), to_categorical(Y, num_classes=256)
-                #X = []
-                #Y = []
-
-    #return np.array(X, dtype='float32'), to_categorical(Y, num_classes=256)
-
-#def save_to_HDF5(data, data_file):
-    #print("Saving data to HDF5 file.")
-    #hf = h5py.File(data_file, 'w')
-    #hf.create_dataset('AudioRNNdata', data=data)
-    #hf.close()
-
 def load_from_HDF5(data_file, num_examples, start_example=0):
     print("Loading data from HDF5 file.")
     with h5py.File(data_file, 'r') as hf:
-        
         x_train = hf['x_train'][start_example:start_example+num_examples]
         y_train = hf['y_train'][start_example:start_example+num_examples]
+
     return x_train.astype('float32'), y_train.astype('uint8')
 
 def load_audio_from_HDF5(data_file):
@@ -214,7 +190,7 @@ def main():
     parser.add_argument("-ne", "--numexamples", help="Number of examples to use from dataset", type=int, default=5000)
     parser.add_argument("-ts", "--timesteps", help="Number of samples in time context", type=int, default=1000)
     parser.add_argument("-tsft", "--timeshift", help="Number of samples to skip for each example", type=int, default=1000)
-    parser.add_argument("-n", "--neurons", help="Number of neurons per layer", default=256)
+    parser.add_argument("-n", "--neurons", help="Number of neurons per layer", type=int, default=256)
     parser.add_argument("-a", "--audiofile", help="create audio file", default="output.wav")
     arg = parser.parse_args()
 
@@ -241,12 +217,15 @@ def main():
     neurons_per_layer = arg.neurons
 
 # NOTE: for debugging
-    #train = True
-    #load_HDF5 = True 
+    train = True
+    load_HDF5 = True 
     #gen_audio = True
     #save_HDF5 = True
     #load_audio_HDF5 = True
     #time_steps = 128
+    arg.datadir = 'Opeth' 
+    #save_audio_HDF5 = True
+
 
     # file arguments
     model_file = os.path.join(script_dir, arg.modelfile)
@@ -270,15 +249,17 @@ def main():
             print(f"loading waves from {data_dir}")
             raw_data = load_data(data_dir, sample_rate)
             #write_audio(raw_data, audio_file, sample_rate)     # test data loader/resampler
-            print(f'Number of samples: {len(raw_data)} Length of data: {len(raw_data)/sample_rate} secs')
-            data = pre_process(raw_data)
+            print(f'Number of samples: {len(raw_data)} Length of data: {len(raw_data)/sample_rate} secs'"""  """)
+            #raw_data = raw_data[:24000]
+            #data = pre_process(raw_data)
     
             # encode data to 8-bits
             print('Encoding data as mu-law')
-            data = to_ulaw(data)
+            data = to_ulaw(raw_data)
             #data = from_ulaw(data)
             #data = post_process(data)
             #write_audio(data.astype('int16'), audio_file, sample_rate)     # test mu-law transform
+
 
         # write pre processed audio to HDF5 file
         if save_audio_HDF5:
@@ -302,16 +283,16 @@ def main():
         x_train = x_train/255
 
         # get training and validation sets
-        x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.01, shuffle=False )
+        #x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.01, shuffle=False )
         # data must be a multiple of batch size
         num_train_samples = batch_size * (len(x_train)//batch_size)
         x_train = x_train[0:num_train_samples,:,:]
         y_train = y_train[0:num_train_samples,:]
-        num_valid_samples = batch_size * (len(x_valid)//batch_size)
-        x_valid = x_valid[0:num_valid_samples,:,:]
-        y_valid = y_valid[0:num_valid_samples,:]
+        #num_valid_samples = batch_size * (len(x_valid)//batch_size)
+        #x_valid = x_valid[0:num_valid_samples,:,:]
+        #y_valid = y_valid[0:num_valid_samples,:]
         print(f"TRAINING: Shape of input data {x_train.shape}, Shape of target data {y_train.shape}")
-        print(f"VALIDATION: Shape of input data {x_valid.shape}, Shape of target data {y_valid.shape}")
+        #print(f"VALIDATION: Shape of input data {x_valid.shape}, Shape of target data {y_valid.shape}")
 
         # build model
         AudioRNN = model(batch_size, time_steps, neurons_per_layer)
@@ -324,7 +305,7 @@ def main():
         #escb = EarlyStopping(monitor='val_loss', patience=10, verbose=1)
         #audio_prompt = x_train[0:batch_size, :, :]
         #gen_audio_callback = SaveAudioCallback(1, 0.5, sample_rate, time_steps, audio_prompt, batch_size)
-        model_history = AudioRNN.fit(x_train, y_train, validation_data=(x_valid, y_valid), batch_size=batch_size, epochs=epochs, callbacks=[csv_logger, best_train_model_checkpoint, best_valid_model_checkpoint])
+        model_history = AudioRNN.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, callbacks=[csv_logger, best_train_model_checkpoint, best_valid_model_checkpoint])
         with open(model_file.split('.')[0] + '.npy', "wb") as outfile:
             pickle.dump(model_history.history, outfile)
 
@@ -339,14 +320,12 @@ def main():
         print(f"Prompting audio generation with example {example}")
         audio_prompt, _ = load_from_HDF5(data_file, 1, start_example=example)
         audio = generate_audio(AudioRNN, gen_length, sample_rate, time_steps, audio_prompt, 1)
-        write_audio(post_process(audio).astype('int16'), audio_file, sample_rate)
+        #write_audio(post_process(audio).astype('int16'), audio_file, sample_rate)
+        write_audio(audio.astype('int16'), audio_file, sample_rate)
 
-    # decode data from 8-bits to int16
+    # NOTE:test audio data and transformations are correct
     #data = from_ulaw(data)
-    
     #data = post_process(data)
-
-    # NOTE:test audio data is correct
     #write_audio(data.astype('int16'), audio_file)
 
     print(f"AudioRNN completed at {time.ctime()}")

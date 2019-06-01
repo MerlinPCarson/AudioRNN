@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
-import pickle
+import pickle, sys
 
-dataFile = 'AudioRNN.npy'
+dataFile = sys.argv[1]
+
 data = pickle.load(open(dataFile, "rb"))
 
 plt.figure('AudioRNN loss')
