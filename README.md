@@ -27,7 +27,7 @@
   
 # GRU Network
 
-![alt text](https://github.com/mpc6/AudioRNN/blob/master/GRU.png "GRU network")
+![alt text](https://github.com/mpc6/AudioRNN/blob/master/GRU-AudioRNN.png "AudioRNN model")
 
 # Model Metrics
 
