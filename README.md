@@ -31,7 +31,7 @@
 
 # Training Data
 
-  [McGill Telecommunications & Signal Processing Laboratory
+ - [McGill Telecommunications & Signal Processing Laboratory
 Multimedia Signal Processing (60 minutes of speech)](http://www-mmsp.ece.mcgill.ca/Documents/Data)
 
 # Model Metrics
