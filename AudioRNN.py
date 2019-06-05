@@ -107,12 +107,14 @@ def model(batch_size, time_steps, num_neurons):
     x_in = Input(batch_shape=(batch_size, time_steps, 1))
     x = Dense(num_neurons, activation='relu')(x_in)
     x = BatchNormalization()(x)
-    rnn_in1 = concatenate([x_in, x])
-    x = CuDNNGRU(num_neurons, return_sequences=True, stateful=False)(rnn_in1)
+    #rnn_in1 = concatenate([x_in, x])
+    #x = CuDNNGRU(num_neurons, return_sequences=True, stateful=False)(rnn_in1)
+    x = CuDNNGRU(num_neurons, return_sequences=True, stateful=False)(x)
     x = BatchNormalization()(x)
-    rnn_in2 = concatenate([x_in, x])
+    #rnn_in2 = concatenate([x_in, x])
     #x = Dropout(0.4)(x)
-    x = CuDNNGRU(num_neurons, return_sequences=False, stateful=False)(rnn_in2)
+    #x = CuDNNGRU(num_neurons, return_sequences=False, stateful=False)(rnn_in2)
+    x = CuDNNGRU(num_neurons, return_sequences=False, stateful=False)(x)
     x = BatchNormalization()(x)
     #x = Dropout(0.4)(x)
     x = Dense(256, activation='softmax')(x)
@@ -217,15 +219,16 @@ def main():
     neurons_per_layer = arg.neurons
 
 # NOTE: for debugging
-    train = True
-    load_HDF5 = True 
+    #train = True
+    #load_HDF5 = True 
     #gen_audio = True
     #save_HDF5 = True
     #load_audio_HDF5 = True
-    #time_steps = 128
-    arg.datadir = 'Opeth' 
+    #time_steps = 4000 
+    #arg.datadir = 'Opeth' 
     #save_audio_HDF5 = True
-
+    #num_examples = 493055 
+    #batch_size = 64 
 
     # file arguments
     model_file = os.path.join(script_dir, arg.modelfile)
@@ -234,12 +237,14 @@ def main():
     data_file = os.path.join(script_dir, arg.datafile.replace('.h5', str(time_steps) + '.h5'))
     audio_data_file = os.path.join(script_dir, arg.audiodatafile.replace('.h5', str(sample_rate) + '.h5'))
 
+
     # load audio data, if dataset is not loaded from HDF5
     if not load_HDF5 and train:
         if load_audio_HDF5:
             print(f"loading audio data from {audio_data_file}")
             data = load_audio_from_HDF5(os.path.join(script_dir, audio_data_file))
             #data = data[:478935]
+            data = data[:int(len(data)*0.25)]
             #data = from_ulaw(data)
             #data = post_process(data)
             #write_audio(data.astype('int16'), audio_file, sample_rate)     # test HDF5 data loader/ mu-law transform
@@ -278,7 +283,12 @@ def main():
         assert os.path.exists(data_file), f"Data file {data_file}, does not exists!"
         print(f"loading dataset from {data_file}")
         x_train, y_train = load_from_HDF5(data_file, num_examples)
-       
+
+        # NOTE: for testing target vector
+        #data = from_ulaw(y_train)
+        #data = post_process(data)
+        #write_audio(data.astype('int16'), audio_file, sample_rate)     # test mu-law transform
+
         # normalize the data 
         x_train = x_train/255
 
