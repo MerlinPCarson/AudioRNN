@@ -164,6 +164,7 @@ def load_from_HDF5(data_file, num_examples, start_example=0):
         
         x_train = hf['x_train'][start_example:start_example+num_examples]
         y_train = hf['y_train'][start_example:start_example+num_examples]
+
     return x_train.astype('float32'), y_train.astype('uint8')
 
 def load_audio_from_HDF5(data_file):
@@ -260,10 +261,12 @@ def main():
         if load_audio_HDF5:
             print(f"loading audio data from {audio_data_file}")
             data = load_audio_from_HDF5(os.path.join(script_dir, audio_data_file))
-            #data = data[:478935]
+            
+            #NOTE: test data loader
             #data = from_ulaw(data)
             #data = post_process(data)
             #write_audio(data.astype('int16'), audio_file, sample_rate)     # test HDF5 data loader/ mu-law transform
+            
             print(f"Data max: {data.max()}, Data min: {data.min()}")
         else:
             print("[Data Preperation]")
@@ -276,6 +279,8 @@ def main():
             # encode data to 8-bits
             print('Encoding data as mu-law')
             data = to_ulaw(data)
+          
+            #NOTE: test mu-law encodding
             #data = from_ulaw(data)
             #data = post_process(data)
             #write_audio(data.astype('int16'), audio_file, sample_rate)     # test mu-law transform
@@ -297,7 +302,12 @@ def main():
         assert os.path.exists(data_file), f"Data file {data_file}, does not exists!"
         print(f"loading dataset from {data_file}")
         x_train, y_train = load_from_HDF5(data_file, num_examples)
-       
+        
+        # NOTE:test target vector
+        #data = from_ulaw(y_train
+        #data = post_process(data)
+        #write_audio(data.astype('int16'), audio_file)
+   
         # normalize the data 
         x_train = x_train/255
 
@@ -341,12 +351,9 @@ def main():
         audio = generate_audio(AudioRNN, gen_length, sample_rate, time_steps, audio_prompt, 1)
         write_audio(post_process(audio).astype('int16'), audio_file, sample_rate)
 
-    # decode data from 8-bits to int16
-    #data = from_ulaw(data)
-    
-    #data = post_process(data)
-
     # NOTE:test audio data is correct
+    #data = from_ulaw(data)
+    #data = post_process(data)
     #write_audio(data.astype('int16'), audio_file)
 
     print(f"AudioRNN completed at {time.ctime()}")
