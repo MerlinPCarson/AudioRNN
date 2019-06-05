@@ -52,6 +52,7 @@ def save_data_to_HDF5(data, time_steps, outfile):
             if(x_train.shape[0] <  chunk_size):
                 break 
 
+# for testing
 def main():
     script_dir = os.path.dirname(os.path.realpath(__file__))
     input_file = os.path.join(script_dir, 'AudioData.h5')
