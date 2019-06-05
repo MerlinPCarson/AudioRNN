@@ -20,11 +20,8 @@ from keras.optimizers import Adam
 from keras.utils import to_categorical
 
 
-#SAMPLERATE = 16000
 EMPHASISCOEFF = -0.95
 
-#TO_ULAW_SCALE = 255.0/32767.0
-#FROM_ULAW_SCALE = TO_ULAW_SCALE ** -1
 
 class SaveAudioCallback(Callback):
     def __init__(self, ckpt_freq, gen_length, sample_rate, time_steps, audio_context, batch_size):
@@ -134,30 +131,6 @@ def create_dataset(data, time_steps, time_shift):
 
     return np.array(X, dtype='float32'), to_categorical(Y, num_classes=256)
 
-#def create_dataset_generator(data, time_steps):
-    #X = []
-    #Y = []
-    #while True:
-        #for frame_start in range(len(data)-time_steps - 1):
-            ## get frame and normalize
-            #frame = data[frame_start:frame_start+time_steps]/255
-            ## append frame of data to dataset 
-            #X.append(frame.reshape(time_steps,1))
-            ## get ulaw encoded sample after frame for target
-            #Y.append(data[frame_start+time_steps])
-            #if len(X) == len(data)//1000000:
-                #yield np.array(X, dtype='float32'), to_categorical(Y, num_classes=256)
-                #X = []
-                #Y = []
-
-    #return np.array(X, dtype='float32'), to_categorical(Y, num_classes=256)
-
-#def save_to_HDF5(data, data_file):
-    #print("Saving data to HDF5 file.")
-    #hf = h5py.File(data_file, 'w')
-    #hf.create_dataset('AudioRNNdata', data=data)
-    #hf.close()
-
 def load_from_HDF5(data_file, num_examples, start_example=0):
     print("Loading data from HDF5 file.")
     with h5py.File(data_file, 'r') as hf:
@@ -189,7 +162,6 @@ def generate_audio(AudioRNN, gen_length, sample_rate, time_steps, audio_prompt, 
         audio_prompt = np.append(audio_prompt, pred_sample)
         audio_prompt = audio_prompt[1:]
 
-    #print(audio)
     return from_ulaw(audio) 
     
 
