@@ -10,12 +10,11 @@ from scipy import signal
 import AudioRNNData as DataGen
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-#from audioop import lin2ulaw, ulaw2lin
 
 # Keras packages model
 from keras.models import Sequential, Model, load_model
 from keras.layers import Input, Dense, CuDNNGRU, CuDNNLSTM, Dropout, BatchNormalization, concatenate
-from keras.callbacks import Callback, ModelCheckpoint, CSVLogger #, EarlyStopping, CoolDown
+from keras.callbacks import Callback, ModelCheckpoint, CSVLogger, EarlyStopping #, CoolDown
 from keras.optimizers import Adam
 from keras.utils import to_categorical
 
@@ -234,7 +233,7 @@ def main():
             print(f"loading audio data from {audio_data_file}")
             data = load_audio_from_HDF5(os.path.join(script_dir, audio_data_file))
             
-            #NOTE: test data loader
+            # NOTE: test data loader
             #data = from_ulaw(data)
             #data = post_process(data)
             #write_audio(data.astype('int16'), audio_file, sample_rate)     # test HDF5 data loader/ mu-law transform
@@ -252,7 +251,7 @@ def main():
             print('Encoding data as mu-law')
             data = to_ulaw(data)
           
-            #NOTE: test mu-law encodding
+            # NOTE: test mu-law encodding
             #data = from_ulaw(data)
             #data = post_process(data)
             #write_audio(data.astype('int16'), audio_file, sample_rate)     # test mu-law transform
