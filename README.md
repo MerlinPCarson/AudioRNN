@@ -40,7 +40,7 @@ Training on 60 seconds of audio, it can be seen in the following accuracy and tr
 
 ![alt text](https://github.com/mpc6/AudioRNN/blob/master/ReadmeAssets/AudioRNN1min.png "AudioRNN model trained on 60 secs data")
 
-Training on 60 minutes of audio resulted in a significantly lower accuracy and higher loss, as can be seen in the graphs below. This would suggest that the model's capacity is too small for this amount of data, which would be necessary for good generalization. However, increasing the size of the network would take significantly longer to train.
+Training on 10 minutes of audio resulted in a significantly lower accuracy and higher loss, as can be seen in the graphs below. This would suggest that the model's capacity is too small for this amount of data. It can be seen between the training curve (blue) and the validation curve (orange) that the model did generalize well. However, increasing the size of the network would take significantly longer to train.
 
 ![alt text](https://github.com/mpc6/AudioRNN/blob/master/ReadmeAssets/AudioRNN60mins.png "AudioRNN model trained on 60 mins data")
 
