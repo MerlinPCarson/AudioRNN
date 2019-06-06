@@ -12,8 +12,9 @@
     
 # Introduction
 
-  Neural audio generation alogrithms require generating large datasets based on the long time context needed to accurately predict subsequent samples. Training to predict time series data with audio is a computationally complex problem due to the large sampling rates of high quality audio. Accuray is also a problem since the output range of PCM samples is [-32768, 32767]. So, AudioRNN predicts a probability distribution over the values 0-255 which represent the range of μ-law encoded LPCM samples. The sample selected from the distribution is transformed into a PCM sample with post-processing. This allows the model to train categorically instead of as more complex regresssion problem.
-  AudioRNN is a highly parameterized model that allows for the loading of data at any sample rate and converting it to a specified training sample rate. It also allows for generating datasets and training with a user specified time context. All input and targets are quantized to 8-bit representations by way of the μ-law encoding. Since the μ-law encoding is susceptible to noise in the higher frequencies, a pre-emphasis IR filter is applied to the audio prior to the encoding to increase the SNR at higher frequencies. The output of the model is decoded back to PCM and passed through the inverse of the pre-emphasis filter to undo the processing done on the input. 
+<p> Neural audio generation alogrithms require generating large datasets based on the long time context needed to accurately predict subsequent samples. Training to predict time series data with audio is a computationally complex problem due to the large sampling rates of high quality audio. Accuray is also a problem since the output range of PCM samples is [-32768, 32767]. So, AudioRNN predicts a probability distribution over the values [0, 255] which represent the range of μ-law encoded LPCM samples. The sample selected from the distribution is transformed into a PCM sample with post-processing. This allows the model to train categorically instead of as a more complex regresssion problem. </p>
+  
+<p> AudioRNN is a highly parameterized model that allows for the loading of data at any sample rate and converting it to a specified training sample rate. It also allows for generating datasets and training with a user specified time context. All input and targets are quantized to 8-bit representations by way of the μ-law encoding. Since the μ-law encoding is susceptible to noise in the higher frequencies, a pre-emphasis IR filter is applied to the audio prior to the encoding to increase the SNR at higher frequencies. The output of the model is decoded back to PCM and passed through the inverse of the pre-emphasis filter to undo the processing done on the input. </p>
   
 # Scripts
 - AudioRNN.py
@@ -57,5 +58,9 @@ Training on 10 minutes of audio resulted in a significantly lower accuracy and h
   - [Audio Sample with 128@8kHz sample time context](https://mpc6.github.io/AudioRNNDemo/output-128ts.wav)
   
 # Future Work
+
+- [] Create Keras data generator to training on larger amounts of data
+- [] Experiment with longer time contexts
+- [] Train on music data sets
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
