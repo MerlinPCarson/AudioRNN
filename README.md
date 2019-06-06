@@ -36,14 +36,18 @@ Multimedia Signal Processing (60 minutes of speech)](http://www-mmsp.ece.mcgill.
 
 # Model Metrics
 
+![alt text](https://github.com/mpc6/AudioRNN/blob/master/ReadmeAssets/AudioRNN1min.png "AudioRNN model 6trained on 60 secs data")
+
+![alt text](https://github.com/mpc6/AudioRNN/blob/master/ReadmeAssets/AudioRNN60mins.png "AudioRNN model trained on 60 mins data")
+
 # Sample Audio 
 
   Trained with a 1000 sample time context trained at 8kHz, approximately 1/8th of a second, the model is capable of mimicing speech qualities. However, this requires preparing each sample of the training data to have the previous 1000 samples appended to it. Therefore, 60 mins of audio would require a dataset that contains a total of 60000 mins of audio (~110GBs). Because of memory and time constraints, I was only able to train with ~ 8 minutes of speech, thus long term dependencies were not well generalized and the model was only capable of mimicing small sections of speech like audio.
-    ![alt text](https://github.com/mpc6/AudioRNN/blob/master/ReadmeAssets/AudioRNN1000ts.png "AudioRNN model 1000 time steps")
+    ![alt text](https://github.com/mpc6/AudioRNN/blob/master/ReadmeAssets/AudioRNNwav1000ts.png "AudioRNN model 1000 time steps")
   - [Audio Sample with 1000@8kHz sample time context](https://mpc6.github.io/AudioRNNDemo/output-1000ts.wav)
   
   Trained with a 128 sample time context trained at 8kHz, 1.6% of a second, I was able to create a dataset and train on the entire 60 minutes of speech audio. However, this time context is too short to learn speech like qualities. The model did learn to generate audio with phase, but the samples do not have speech like qualities.
-  ![alt text](https://github.com/mpc6/AudioRNN/blob/master/ReadmeAssets/AudioRNN100ts.png "AudioRNN model 128 time steps")
+  ![alt text](https://github.com/mpc6/AudioRNN/blob/master/ReadmeAssets/AudioRNNwav128ts.png "AudioRNN model 128 time steps")
   - [Audio Sample with 128@8kHz sample time context](https://mpc6.github.io/AudioRNNDemo/output-128ts.wav)
   
 # Future Work
