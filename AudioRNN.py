@@ -81,16 +81,18 @@ def standardize(data):
    return (data - data.min())/(data.max() - data.min()) 
 
 def from_ulaw(samples):
+    print('Decoding mu-law samples')
     dec_samples = []
-    for sample in samples:
+    for sample in tqdm(samples):
         ampl_val_8 = ((((sample) / 255.0) - 0.5) * 2.0)
         ampl_val_16 = (np.sign(ampl_val_8) * (1/256.0) * ((1 + 256.0)**abs(ampl_val_8) - 1)) * 2**15
         dec_samples.append(ampl_val_16)
     return np.array(dec_samples, dtype=np.float)
 
 def to_ulaw(samples):
+    print('Encoding mu-law samples')
     enc_samples = [int((np.sign(sample) * (np.log(1 + 256*abs(sample)) / (
-            np.log(1+256))) + 1)/2.0 * 255) for sample in samples]
+            np.log(1+256))) + 1)/2.0 * 255) for sample in tqdm(samples)]
     return np.array(enc_samples, dtype=np.uint8)
 
 def scale_data(samples):
@@ -175,6 +177,7 @@ def main():
     parser.add_argument("-af", "--audiodatafile", help="HDF5 file to save PCM data to", default="AudioData.h5")
     parser.add_argument("-m", "--modelfile", help="create audio from existing model file", default="AudioRNN.h5")
     parser.add_argument("-t", "--train", help="train the model", action="store_true")
+    parser.add_argument("-test", "--test", help="test processing", action="store_true")
     parser.add_argument("-g", "--generate", help="generate_audio", action="store_true")
     parser.add_argument("-gl", "--genlength", help="length of generate_audio in secs", type=float, default=1)
     parser.add_argument("-sh5", "--saveHDF5", help="save preprocessed data to HDF5 file", action="store_true")
@@ -204,6 +207,7 @@ def main():
     load_audio_HDF5 = arg.loadaudioHDF5
     save_audio_HDF5 = arg.saveaudioHDF5
     sample_rate = arg.samplerate
+    test = arg.test
 
     # model arguments
     epochs = arg.epochs
@@ -218,7 +222,10 @@ def main():
     #gen_audio = True
     #save_HDF5 = True
     #load_audio_HDF5 = True
-    #time_steps = 128
+    #time_steps = 4000
+    #num_examples = 1000000 
+    #test = True
+    #arg.datadir = 'Opeth'
 
     # file arguments
     model_file = os.path.join(script_dir, arg.modelfile)
@@ -234,16 +241,18 @@ def main():
             data = load_audio_from_HDF5(os.path.join(script_dir, audio_data_file))
             
             # NOTE: test data loader
-            #data = from_ulaw(data)
-            #data = post_process(data)
-            #write_audio(data.astype('int16'), audio_file, sample_rate)     # test HDF5 data loader/ mu-law transform
+            if test:
+                data = from_ulaw(data)
+                data = post_process(data)
+                write_audio(data.astype('int16'), os.path.join(script_dir, 'test-dataloader.wav'), sample_rate)     # test HDF5 data loader/ mu-law transform
             
             print(f"Data max: {data.max()}, Data min: {data.min()}")
         else:
             print("[Data Preperation]")
             print(f"loading waves from {data_dir}")
             raw_data = load_data(data_dir, sample_rate)
-            #write_audio(raw_data, audio_file, sample_rate)     # test data loader/resampler
+            if test:
+                write_audio(raw_data, os.path.join(script_dir, 'test-rawdata.wav'), sample_rate)     # test data loader/resampler
             print(f'Number of samples: {len(raw_data)} Length of data: {len(raw_data)/sample_rate} secs')
             data = pre_process(raw_data)
     
@@ -252,9 +261,10 @@ def main():
             data = to_ulaw(data)
           
             # NOTE: test mu-law encodding
-            #data = from_ulaw(data)
-            #data = post_process(data)
-            #write_audio(data.astype('int16'), audio_file, sample_rate)     # test mu-law transform
+            if test:
+                data = from_ulaw(data)
+                data = post_process(data)
+                write_audio(data.astype('int16'), os.path.join(script_dir, 'test-procdata.wav'), sample_rate)     # test mu-law transform
 
         # write pre processed audio to HDF5 file
         if save_audio_HDF5:
@@ -275,9 +285,10 @@ def main():
         x_train, y_train = load_from_HDF5(data_file, num_examples)
         
         # NOTE:test target vector
-        #data = from_ulaw(y_train
-        #data = post_process(data)
-        #write_audio(data.astype('int16'), audio_file)
+        if test:
+            data = from_ulaw(y_train)
+            data = post_process(data)
+            write_audio(data.astype('int16'), os.path.join(script_dir, 'test-target.wav'), sample_rate)
    
         # normalize the data 
         x_train = x_train/255
@@ -302,6 +313,7 @@ def main():
         csv_logger = CSVLogger('AudioRNN.log')
         best_valid_model_checkpoint = ModelCheckpoint(model_file, save_best_only=True) 
         best_train_model_checkpoint = ModelCheckpoint(model_file.split('.')[0] + '_train.h5', save_best_only=True, monitor='loss', mode='min') 
+        # Future Callbacks
         #escb = EarlyStopping(monitor='val_loss', patience=10, verbose=1)
         #audio_prompt = x_train[0:batch_size, :, :]
         #gen_audio_callback = SaveAudioCallback(1, 0.5, sample_rate, time_steps, audio_prompt, batch_size)
@@ -321,11 +333,6 @@ def main():
         audio_prompt, _ = load_from_HDF5(data_file, 1, start_example=example)
         audio = generate_audio(AudioRNN, gen_length, sample_rate, time_steps, audio_prompt, 1)
         write_audio(post_process(audio).astype('int16'), audio_file, sample_rate)
-
-    # NOTE:test audio data is correct
-    #data = from_ulaw(data)
-    #data = post_process(data)
-    #write_audio(data.astype('int16'), audio_file)
 
     print(f"AudioRNN completed at {time.ctime()}")
 
