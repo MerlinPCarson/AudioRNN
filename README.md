@@ -1,3 +1,5 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/mpc6/AudioRNN/blob/master/LICENSE.txt)
+
 # AudioRNN
 
   A recurrent neural audio generation alogrithm that trains on and predicts PCM samples.
@@ -63,4 +65,4 @@ Training on 10 minutes of audio resulted in a significantly lower accuracy and h
 - [ ] Experiment with longer time contexts
 - [ ] Train on music data sets
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
