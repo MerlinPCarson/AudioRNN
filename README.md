@@ -28,7 +28,7 @@ AudioRNN is a highly parameterized model that allows for the loading of data at 
   
 # AudioRNN Model
 
-![alt text](https://github.com/mpc6/AudioRNN/blob/master/GRU-AudioRNN.png "AudioRNN model")
+![alt text](https://github.com/mpc6/AudioRNN/blob/master/ReadmeAssets/GRU-AudioRNN.png "AudioRNN model")
 
 # Training Data
 
