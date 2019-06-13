@@ -2,7 +2,7 @@
 
 # AudioRNN
 
-  A recurrent neural audio generation alogrithm that trains on and predicts PCM samples.
+  A recurrent neural audio generation algorithm that trains on and predicts PCM samples.
   
   Requirements (Pipfile included for creating virtual environment with all requirements):
 
